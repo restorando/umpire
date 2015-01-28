@@ -1,3 +1,5 @@
+require 'librato/metrics'
+
 module Umpire
   module LibratoMetrics
     extend self

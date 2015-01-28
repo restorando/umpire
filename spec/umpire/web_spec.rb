@@ -33,7 +33,7 @@ describe Umpire::Web do
       it "should call Graphite.get_values_for_range" do
         mock_graphite_url = "https://graphite.example.com"
         Umpire::Config.stub(:graphite_url) { mock_graphite_url }
-        Umpire::Graphite.should_receive(:get_values_for_range).with(mock_graphite_url, "foo.bar", 60) { [] }
+        Umpire::Graphite.should_receive(:get_values_for_range).with("foo.bar", 60, {}) { [] }
         get "/check?metric=foo.bar&range=60&max=100"
       end
 

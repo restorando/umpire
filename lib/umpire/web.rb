@@ -77,36 +77,35 @@ module Umpire
         errors
       end
 
-      def use_librato_backend?
-        params["backend"] == "librato"
+      def fetch_points(params)
+        metrics = params["metric"].split(",")
+        range   = (params["range"] && params["range"].to_i)
+        backend = metrics_backend(params["backend"])
+        options = extract_options(params)
+
+        if compose = params["compose"]
+          backend.compose_values_for_range(compose, metrics, range, options)
+        else
+          raise MetricNotComposite, "multiple metrics without a compose function" if metrics.size > 1
+          backend.get_values_for_range(metrics.first, range, options)
+        end
       end
 
-      def fetch_points(params)
-        metric = params["metric"]
-        range = (params["range"] && params["range"].to_i)
-
-        if use_librato_backend?
-          compose = params["compose"]
-
-          opts = {}
-          %w{source from resolution}.each do |key|
-            next unless val = params[key]
-            opts[key.to_sym] = val
-          end
-
-          if !compose && metric.split(",").size > 1
-            raise MetricNotComposite, "multiple metrics without a compose function"
-          end
-
-          if compose
-            LibratoMetrics.compose_values_for_range(compose, metric.split(","), range, opts)
-          else
-            LibratoMetrics.get_values_for_range(metric, range, opts)
-          end
+      def metrics_backend(backend)
+        case backend
+        when "librato"
+          LibratoMetrics
+        when "influxdb"
+          InfluxDB
         else
-          Graphite.get_values_for_range(Config.graphite_url, metric, range)
+          Graphite
         end
+      end
 
+      def extract_options(params)
+        %w[source from resolution].each_with_object({}) do |key, opts|
+          opts[key.to_sym] = params[key] if params[key]
+        end
       end
 
       def create_aggregator(aggregation_method)

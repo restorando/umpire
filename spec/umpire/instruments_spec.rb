@@ -9,6 +9,10 @@ describe Umpire::Instruments do
     let(:graphite_path) { "/render/" }
     let(:graphite_query) { "format=json&from=-#{range}s&target=#{metric}" }
 
+    before do
+      Umpire::Config.stub(:graphite_url) { graphite_url }
+    end
+
     it "should log relevant values when calling external apis" do
       stub_request(:get, "#{graphite_url}#{graphite_path}?#{graphite_query}")
         .to_return(:body => [{"target"=>metric, "datapoints"=>[[4.47, 1348851060]]}].to_json)
@@ -27,7 +31,7 @@ describe Umpire::Instruments do
         blk.call
       end.at_least(:once)
 
-      Umpire::Graphite.get_values_for_range(graphite_url, metric, range)
+      Umpire::Graphite.get_values_for_range(metric, range)
     end
 
     it "should log errors when external apis fail" do
@@ -44,7 +48,7 @@ describe Umpire::Instruments do
         blk.call
       end.at_least(:once)
 
-      expect { Umpire::Graphite.get_values_for_range(graphite_url, metric, range) }.to raise_error(MetricServiceRequestFailed)
+      expect { Umpire::Graphite.get_values_for_range(metric, range) }.to raise_error(MetricServiceRequestFailed)
     end
   end
 end
