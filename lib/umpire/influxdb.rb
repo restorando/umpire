@@ -6,8 +6,14 @@ module Umpire
     extend self
 
     def get_values_for_range(metric, range, options)
-      results = client.query(%{select value from #{metric.inspect} where time > now() - #{range}s})
-      results[metric].map { |entry|  entry['value'] }
+      from = options[:from] || "value"
+      results = client.query <<-QUERY
+        select #{from} as value
+        from #{metric.inspect}
+        where time > now() - #{range}s
+        #{group_by(options[:resolution])}
+      QUERY
+      results[metric].map { |entry| entry["value"] }
     rescue ::InfluxDB::Error => e
       raise MetricServiceRequestFailed, e.message
     end
@@ -17,6 +23,10 @@ module Umpire
     end
 
     private
+
+    def group_by(resolution)
+      "group by time(#{resolution}s)" if resolution
+    end
 
     def client
       return @client if @client
